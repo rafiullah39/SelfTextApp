@@ -1,0 +1,19 @@
+# Local credentials and signing material
+**/google-services.json
+**/firebase.local.json
+**/release-defines.json
+**/key.properties
+**/*.jks
+**/*.keystore
+**/.env*
+
+# Generated and machine-specific files
+.dart_tool/
+.flutter-plugins-dependencies
+.gradle/
+**/build/
+**/.idea/
+**/*.iml
+**/local.properties
+coverage/
+*.log
