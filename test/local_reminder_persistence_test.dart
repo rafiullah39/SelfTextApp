@@ -81,7 +81,7 @@ void main() {
         actions.every(
           (a) =>
               a['showsUserInterface'] == false &&
-              a['cancelNotification'] == false,
+              a['cancelNotification'] == true,
         ),
         true,
       );
