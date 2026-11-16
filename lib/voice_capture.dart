@@ -68,11 +68,18 @@ class _VoiceState extends State<_VoiceSheet> {
         {'locale': language},
       );
       if (!mounted) return;
+      final sendWhenFinished = stopping;
       setState(() {
         listening = false;
         stopping = false;
         if (text != null) transcript.text = text;
+        if (transcript.text.trim().isEmpty) {
+          error = 'No words were recognized. Check microphone permission and your phone’s speech service, then try again or type below.';
+        }
       });
+      if (sendWhenFinished && transcript.text.trim().isNotEmpty) {
+        Navigator.pop(context, transcript.text.trim());
+      }
     } on PlatformException catch (e) {
       if (mounted) {
         setState(() {
@@ -189,7 +196,7 @@ class _VoiceState extends State<_VoiceSheet> {
                   ? FilledButton.icon(
                       onPressed: stopping ? null : stop,
                       icon: const Icon(Icons.stop_circle_outlined),
-                      label: Text(stopping ? 'Finishing…' : 'Stop recording'),
+                      label: Text(stopping ? 'Finishing…' : 'Stop and send'),
                     )
                   : FilledButton.icon(
                       onPressed: start,

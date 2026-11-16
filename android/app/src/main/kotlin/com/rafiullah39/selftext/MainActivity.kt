@@ -46,7 +46,8 @@ class MainActivity : FlutterActivity() {
                     stopping=true;handler.removeCallbacksAndMessages(null)
                     if(recognizer==null)finishVoice() else {
                         recognizer?.stopListening()
-                        handler.postDelayed({finishVoice()},1200)
+                        // Some speech services need longer to deliver final words after Stop.
+                        handler.postDelayed({finishVoice()},3000)
                     }
                     result.success(null)
                 }

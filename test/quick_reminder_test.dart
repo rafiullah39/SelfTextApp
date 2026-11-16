@@ -10,6 +10,9 @@ void main() {
     'hello remind me after 5 minutes',
     'Remind Me after 5 minutes',
     'Remind me in five minutes to call Ali',
+    'Set an alarm for 5 minutes later',
+    'make a task for 5 minutes later alarm',
+    'remind me 5 minutes from now to call Ali',
     'mujhe 5 minut baad call ali yaad dilana',
     'مجھے پانچ منٹ بعد دوا کی یاد دلانا',
     'مجھے ۵ منٹ بعد یاد دلانا',
@@ -47,6 +50,7 @@ void main() {
   for (final text in [
     'I worked for 5 minutes',
     'remind me soon',
+    'remind me for 5 minutes',
     'remind me in 0 minutes',
     'remind me in 5 minutes and 2 hours',
     'remind me in 4 hours this takes 2 hours',

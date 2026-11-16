@@ -76,8 +76,10 @@ class QuickReminder {
     final match = matches.single;
     final before = text.substring(0, match.start);
     final after = text.substring(match.end);
-    if (!RegExp(r'\b(in|after)\s*$').hasMatch(before) &&
-        !RegExp(r'^\s*(?:ke\s+)?(?:baad|bad|بعد)(?:\s|$)').hasMatch(after)) {
+    final trailingDelay = RegExp(
+      r'^\s*(?:ke\s+)?(?:baad|bad|بعد|later|from now)(?:\s|$)',
+    ).hasMatch(after);
+    if (!RegExp(r'\b(in|after)\s*$').hasMatch(before) && !trailingDelay) {
       return null;
     }
     final value = double.tryParse(match[1]!);
@@ -95,7 +97,7 @@ class QuickReminder {
     if (seconds < 1 || seconds > 366 * 86400) return null;
     var title = after
         .replaceFirst(
-          RegExp(r'^\s*(?:(?:ke\s+)?(?:baad|bad|بعد))?\s*(?:to\s+)?'),
+          RegExp(r'^\s*(?:(?:ke\s+)?(?:baad|bad|بعد|later|from now))?\s*(?:to\s+)?'),
           '',
         )
         .trim();
@@ -103,7 +105,7 @@ class QuickReminder {
       title = before
           .replaceAll(
             RegExp(
-              r'\b(hello|hi|please|can you|remind me|remind|notify me|set an? alarm|in|after)\b',
+              r'\b(hello|hi|please|can you|remind me|remind|notify me|set an? alarm|make a task|alarm|in|after|for)\b',
             ),
             '',
           )
@@ -116,6 +118,7 @@ class QuickReminder {
           .trim();
     }
     title = title.replaceAll(RegExp(r'^[\s,.:;!?]+|[\s,.:;!?]+$'), '').trim();
+    if (title == 'alarm' || title == 'reminder') title = '';
     if (title.isEmpty) title = 'Reminder';
     return QuickReminder(
       title,

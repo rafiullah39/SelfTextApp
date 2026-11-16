@@ -66,7 +66,7 @@ void main() {
     expect(result, 'پانچ منٹ بعد یاد دلا دینا');
     debugDefaultTargetPlatformOverride = null;
   });
-  testWidgets('pauses keep voice session open until Stop and text approval', (
+  testWidgets('pauses keep voice session open; Stop sends recognized text', (
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
@@ -117,15 +117,12 @@ void main() {
     await tester.tap(find.text('Start speaking'));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 2));
-    expect(find.text('Stop recording'), findsOneWidget);
+    expect(find.text('Stop and send'), findsOneWidget);
     expect(captured, isNull);
     expect(stopped, false);
-    await tester.tap(find.text('Stop recording'));
+    await tester.tap(find.text('Stop and send'));
     await tester.pumpAndSettle();
     expect(stopped, true);
-    expect(captured, isNull);
-    await tester.tap(find.text('Use this text'));
-    await tester.pumpAndSettle();
     expect(captured, 'Remind me in five minutes to call Ali');
     debugDefaultTargetPlatformOverride = null;
   });
