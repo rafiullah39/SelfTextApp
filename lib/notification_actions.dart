@@ -50,43 +50,9 @@ class NotificationActions {
         : 10;
     var until = DateTime.now().add(Duration(minutes: minutes));
     var cloud = false;
-    final session = await storage.read(key: 'selftext.session');
-    if (session != null &&
-        (data['reminder_id'] is String || action == 'dismiss')) {
-      api.token = session;
-      try {
-        if (action == 'done') {
-          await api
-              .request('PATCH', '/records/$record', {'status': 'done'})
-              .timeout(const Duration(seconds: 8));
-        } else if (action == 'dismiss') {
-          await api
-              .request('DELETE', '/records/$record')
-              .timeout(const Duration(seconds: 8));
-        } else {
-          final result = await api
-              .request('POST', '/reminders/${data['reminder_id']}/snooze', {
-                'minutes': minutes,
-              })
-              .timeout(const Duration(seconds: 8));
-          if (result is Map && result['trigger_at'] is String) {
-            until = DateTime.parse(result['trigger_at']);
-          }
-        }
-        cloud = true;
-      } catch (error) {
-        // A local alarm action must still work offline. Its durable receipt is
-        // reconciled with the account on the next sync; no Activity is opened.
-        cloud =
-            action == 'dismiss' &&
-            error is ApiException &&
-            error.statusCode == 404;
-      } finally {
-        api.close();
-      }
-    }
+    // Clear the shade immediately and persist the local action before network.
+    await plugin.cancel(id: id);
     if (action.startsWith('snooze')) {
-      await plugin.cancel(id: id);
       if (data['reminder_id'] is String) {
         final key = 'selftext.local-deliveries.$owner';
         final saved = await storage.read(key: key);
@@ -129,10 +95,8 @@ class NotificationActions {
         }
       }
     }
-    // Separate receipts avoid rewriting the UI's encrypted cache from an isolate.
-    await storage.write(
-      key: receiptKey(owner, id),
-      value: jsonEncode({
+    Future<void> saveReceipt() => storage.write(
+      key: receiptKey(owner, id), value: jsonEncode({
         'owner': owner,
         'record_id': record,
         'action': action,
@@ -142,8 +106,35 @@ class NotificationActions {
         'notification_id': id,
       }),
     );
-    // cancel(id) also cancels a snooze schedule with the same ID. Only remove the
-    // original first when scheduling offline snooze (see the scheduling branch).
-    if (!action.startsWith('snooze')) await plugin.cancel(id: id);
+    await saveReceipt();
+    final session = await storage.read(key: 'selftext.session');
+    if (session != null &&
+        (data['reminder_id'] is String || action == 'dismiss')) {
+      api.token = session;
+      try {
+        if (action == 'done') {
+          await api.request('PATCH', '/records/$record', {'status': 'done'})
+              .timeout(const Duration(seconds: 8));
+        } else if (action == 'dismiss') {
+          await api.request('DELETE', '/records/$record')
+              .timeout(const Duration(seconds: 8));
+        } else {
+          final result = await api.request(
+            'POST', '/reminders/${data['reminder_id']}/snooze',
+            {'minutes': minutes},
+          ).timeout(const Duration(seconds: 8));
+          if (result is Map && result['trigger_at'] is String) {
+            until = DateTime.parse(result['trigger_at']);
+          }
+        }
+        cloud = true;
+      } catch (error) {
+        cloud = action == 'dismiss' &&
+            error is ApiException && error.statusCode == 404;
+      } finally {
+        api.close();
+      }
+      await saveReceipt();
+    }
   }
 }
