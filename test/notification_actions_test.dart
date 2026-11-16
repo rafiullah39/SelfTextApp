@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +23,15 @@ class ActionApi extends SelfTextApi {
     calls.add({'method': method, 'path': path, 'body': body});
     if (fail) throw ApiException('No internet');
     return {};
+  }
+}
+
+class WaitingActionApi extends ActionApi {
+  final reply = Completer<dynamic>();
+  @override
+  Future<dynamic> request(String method, String path, [Map<String, dynamic>? body]) {
+    calls.add({'method': method, 'path': path, 'body': body});
+    return reply.future;
   }
 }
 
@@ -127,6 +137,20 @@ void main() {
       );
     },
   );
+  test('snooze is saved and scheduled before a slow cloud reply', () async {
+    final storage = MemorySessionStorage()
+      ..values.addAll({'selftext.user': 'user', 'selftext.session': 'session'});
+    final api = WaitingActionApi();
+    final action = NotificationActions(storage, api: api).handle(response('snooze_5'));
+    for (var i = 0; i < 10 && api.calls.isEmpty; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(calls.any((call) => call.method == 'cancel'), isTrue);
+    expect(calls.any((call) => call.method == 'zonedSchedule'), isTrue);
+    expect(storage.values[NotificationActions.receiptKey('user', 42)], isNotNull);
+    api.reply.complete({});
+    await action;
+  });
   test('dismiss and done call their owned API without opening app', () async {
     for (final action in ['dismiss', 'done']) {
       final storage = MemorySessionStorage()
@@ -166,7 +190,7 @@ void main() {
       final schedule = calls.last.arguments as Map;
       expect(
         DateTime.parse(
-          '${schedule['scheduledDateTime']}Z',
+          schedule['scheduledDateTime'].toString() + 'Z',
         ).difference(before).inMilliseconds,
         closeTo(300000, 1000),
       );
@@ -175,7 +199,7 @@ void main() {
         actions.every(
           (a) =>
               a['showsUserInterface'] == false &&
-              a['cancelNotification'] == false,
+              a['cancelNotification'] == true,
         ),
         true,
       );
